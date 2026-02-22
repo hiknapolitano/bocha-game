@@ -34,6 +34,8 @@ namespace BochaGame
         [HideInInspector] public GameObject pallinoInstance;
         [HideInInspector] public List<GameObject> team1BallInstances = new List<GameObject>();
         [HideInInspector] public List<GameObject> team2BallInstances = new List<GameObject>();
+        [HideInInspector] public PlayerCharacter player1Character;
+        [HideInInspector] public PlayerCharacter player2Character;
 
         private PhysicsMaterial courtPhysicsMat;
         private PhysicsMaterial ballPhysicsMat;
@@ -303,16 +305,16 @@ namespace BochaGame
 
             // Create Player Characters
             GameObject player1Obj = new GameObject("Player1Character");
-            PlayerCharacter p1 = player1Obj.AddComponent<PlayerCharacter>();
-            p1.SetTeamColor(team1Color);
-            p1.playerName = "Player";
-            p1.SetVisible(false);
+            player1Character = player1Obj.AddComponent<PlayerCharacter>();
+            player1Character.SetTeamColor(team1Color);
+            player1Character.playerName = "Player";
+            player1Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
 
             GameObject player2Obj = new GameObject("Player2Character");
-            PlayerCharacter p2 = player2Obj.AddComponent<PlayerCharacter>();
-            p2.SetTeamColor(team2Color);
-            p2.playerName = "AI";
-            p2.SetVisible(false);
+            player2Character = player2Obj.AddComponent<PlayerCharacter>();
+            player2Character.SetTeamColor(team2Color);
+            player2Character.playerName = "AI";
+            player2Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
         }
 
         /// <summary>

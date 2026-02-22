@@ -78,13 +78,10 @@ namespace BochaGame
             if (aiPlayer == null) aiPlayer = FindFirstObjectByType<AIPlayer>();
 
             // Find player characters
-            PlayerCharacter[] characters = FindObjectsByType<PlayerCharacter>(FindObjectsSortMode.None);
-            foreach (var pc in characters)
+            if (courtSetup != null)
             {
-                if (pc.playerName == "Player" && player1Character == null)
-                    player1Character = pc;
-                else if (pc.playerName == "AI" && player2Character == null)
-                    player2Character = pc;
+                player1Character = courtSetup.player1Character;
+                player2Character = courtSetup.player2Character;
             }
 
             // Log reference status
@@ -263,26 +260,21 @@ namespace BochaGame
         {
             // Character stands slightly behind and to the side of the throw position, feet on ground
             Vector3 charPos = new Vector3(throwPos.x - 0.5f, 0f, throwPos.z - 1.2f);
+            Vector3 offScreen = new Vector3(0, 0, -50f);
 
             if (CurrentTeam == Team.Team1)
             {
                 if (player1Character != null)
-                {
                     player1Character.SetPosition(charPos, 0f);
-                    player1Character.SetVisible(true);
-                }
                 if (player2Character != null)
-                    player2Character.SetVisible(false);
+                    player2Character.SetPosition(offScreen, 0f);
             }
             else
             {
                 if (player2Character != null)
-                {
                     player2Character.SetPosition(charPos, 0f);
-                    player2Character.SetVisible(true);
-                }
                 if (player1Character != null)
-                    player1Character.SetVisible(false);
+                    player1Character.SetPosition(offScreen, 0f);
             }
         }
 
