@@ -48,7 +48,7 @@ namespace BochaGame
             if (!isTracking || hasSettled || rb == null) return;
 
             // Check if ball is moving slowly enough to be considered settled
-            bool isSlowEnough = rb.velocity.magnitude < settleVelocityThreshold
+            bool isSlowEnough = rb.linearVelocity.magnitude < settleVelocityThreshold
                              && rb.angularVelocity.magnitude < settleAngularThreshold;
 
             if (isSlowEnough)
@@ -73,7 +73,7 @@ namespace BochaGame
                     0.5f,
                     Mathf.Clamp(transform.position.z, -12f, 12f)
                 );
-                rb.velocity = Vector3.zero;
+                rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
                 Settle();
             }
@@ -89,7 +89,7 @@ namespace BochaGame
             // Fully stop the ball
             if (rb != null)
             {
-                rb.velocity = Vector3.zero;
+                rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
 
@@ -101,7 +101,7 @@ namespace BochaGame
         /// </summary>
         public float GetSpeed()
         {
-            return rb != null ? rb.velocity.magnitude : 0f;
+            return rb != null ? rb.linearVelocity.magnitude : 0f;
         }
 
         public bool IsSettled()

@@ -35,8 +35,8 @@ namespace BochaGame
         [HideInInspector] public List<GameObject> team1BallInstances = new List<GameObject>();
         [HideInInspector] public List<GameObject> team2BallInstances = new List<GameObject>();
 
-        private PhysicMaterial courtPhysicsMat;
-        private PhysicMaterial ballPhysicsMat;
+        private PhysicsMaterial courtPhysicsMat;
+        private PhysicsMaterial ballPhysicsMat;
 
         private void Awake()
         {
@@ -50,19 +50,19 @@ namespace BochaGame
 
         private void CreatePhysicsMaterials()
         {
-            courtPhysicsMat = new PhysicMaterial("CourtSurface");
+            courtPhysicsMat = new PhysicsMaterial("CourtSurface");
             courtPhysicsMat.dynamicFriction = dynamicFriction;
             courtPhysicsMat.staticFriction = staticFriction;
             courtPhysicsMat.bounciness = bounciness;
-            courtPhysicsMat.frictionCombine = PhysicMaterialCombine.Average;
-            courtPhysicsMat.bounceCombine = PhysicMaterialCombine.Minimum;
+            courtPhysicsMat.frictionCombine = PhysicsMaterialCombine.Average;
+            courtPhysicsMat.bounceCombine = PhysicsMaterialCombine.Minimum;
 
-            ballPhysicsMat = new PhysicMaterial("BallSurface");
+            ballPhysicsMat = new PhysicsMaterial("BallSurface");
             ballPhysicsMat.dynamicFriction = 0.4f;
             ballPhysicsMat.staticFriction = 0.5f;
             ballPhysicsMat.bounciness = 0.15f;
-            ballPhysicsMat.frictionCombine = PhysicMaterialCombine.Average;
-            ballPhysicsMat.bounceCombine = PhysicMaterialCombine.Minimum;
+            ballPhysicsMat.frictionCombine = PhysicsMaterialCombine.Average;
+            ballPhysicsMat.bounceCombine = PhysicsMaterialCombine.Minimum;
         }
 
         private void CreateCourt()
@@ -155,14 +155,7 @@ namespace BochaGame
             Material mat = CreateMaterial(color);
             if (color.a < 1f)
             {
-                mat.SetFloat("_Mode", 3);
-                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                mat.SetInt("_ZWrite", 0);
-                mat.DisableKeyword("_ALPHATEST_ON");
-                mat.EnableKeyword("_ALPHABLEND_ON");
-                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                mat.renderQueue = 3000;
+                SetMaterialTransparent(mat);
             }
             line.GetComponent<Renderer>().material = mat;
 
@@ -202,8 +195,9 @@ namespace BochaGame
 
             // Material
             Material mat = CreateMaterial(color);
-            mat.SetFloat("_Metallic", 0.3f);
-            mat.SetFloat("_Glossiness", 0.7f);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0.3f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.7f);
+            else if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.7f);
             ball.GetComponent<Renderer>().material = mat;
 
             // Physics
@@ -213,8 +207,8 @@ namespace BochaGame
 
             Rigidbody rb = ball.AddComponent<Rigidbody>();
             rb.mass = mass;
-            rb.drag = 0.5f;
-            rb.angularDrag = 1.5f;
+            rb.linearDamping = 0.5f;
+            rb.angularDamping = 1.5f;
             rb.useGravity = true;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
@@ -315,9 +309,43 @@ namespace BochaGame
 
         private Material CreateMaterial(Color color)
         {
-            Material mat = new Material(Shader.Find("Standard"));
-            mat.color = color;
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            if (shader == null) shader = Shader.Find("Diffuse");
+            Material mat = new Material(shader);
+            // Set color via _BaseColor (URP) or _Color (Built-in)
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", color);
+            else
+                mat.color = color;
             return mat;
+        }
+
+        private void SetMaterialTransparent(Material mat)
+        {
+            // Try URP surface type first
+            if (mat.HasProperty("_Surface"))
+            {
+                mat.SetFloat("_Surface", 1); // 0=Opaque, 1=Transparent
+                mat.SetFloat("_Blend", 0);    // 0=Alpha, 1=Premultiply, 2=Additive, 3=Multiply
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            }
+            else
+            {
+                // Built-in RP fallback
+                mat.SetFloat("_Mode", 3);
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.EnableKeyword("_ALPHABLEND_ON");
+                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                mat.renderQueue = 3000;
+            }
         }
     }
 }

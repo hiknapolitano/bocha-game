@@ -45,7 +45,10 @@ namespace BochaGame
             trajectoryLine = lineObj.AddComponent<LineRenderer>();
             trajectoryLine.startWidth = 0.05f;
             trajectoryLine.endWidth = 0.02f;
-            trajectoryLine.material = new Material(Shader.Find("Sprites/Default"));
+            Shader lineShader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (lineShader == null) lineShader = Shader.Find("Sprites/Default");
+            if (lineShader == null) lineShader = Shader.Find("Unlit/Color");
+            trajectoryLine.material = new Material(lineShader);
             trajectoryLine.startColor = new Color(1f, 1f, 1f, 0.6f);
             trajectoryLine.endColor = new Color(1f, 1f, 1f, 0.1f);
             trajectoryLine.positionCount = 0;
@@ -77,16 +80,36 @@ namespace BochaGame
             if (headCol != null) Object.Destroy(headCol);
 
             // Color the arrow
-            Material arrowMat = new Material(Shader.Find("Standard"));
-            arrowMat.color = new Color(1f, 0.9f, 0.2f, 0.8f);
-            arrowMat.SetFloat("_Mode", 3); // Transparent
-            arrowMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            arrowMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            arrowMat.SetInt("_ZWrite", 0);
-            arrowMat.DisableKeyword("_ALPHATEST_ON");
-            arrowMat.EnableKeyword("_ALPHABLEND_ON");
-            arrowMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-            arrowMat.renderQueue = 3000;
+            Shader arrowShader = Shader.Find("Universal Render Pipeline/Lit");
+            if (arrowShader == null) arrowShader = Shader.Find("Standard");
+            if (arrowShader == null) arrowShader = Shader.Find("Diffuse");
+            Material arrowMat = new Material(arrowShader);
+            Color arrowColor = new Color(1f, 0.9f, 0.2f, 0.8f);
+            if (arrowMat.HasProperty("_BaseColor"))
+                arrowMat.SetColor("_BaseColor", arrowColor);
+            else
+                arrowMat.color = arrowColor;
+            // Set transparent mode
+            if (arrowMat.HasProperty("_Surface"))
+            {
+                arrowMat.SetFloat("_Surface", 1);
+                arrowMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                arrowMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                arrowMat.SetInt("_ZWrite", 0);
+                arrowMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                arrowMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            }
+            else
+            {
+                arrowMat.SetFloat("_Mode", 3);
+                arrowMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                arrowMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                arrowMat.SetInt("_ZWrite", 0);
+                arrowMat.DisableKeyword("_ALPHATEST_ON");
+                arrowMat.EnableKeyword("_ALPHABLEND_ON");
+                arrowMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                arrowMat.renderQueue = 3000;
+            }
             shaft.GetComponent<Renderer>().material = arrowMat;
             head.GetComponent<Renderer>().material = arrowMat;
 
@@ -114,7 +137,7 @@ namespace BochaGame
             if (currentRb != null)
             {
                 currentRb.isKinematic = true;
-                currentRb.velocity = Vector3.zero;
+                currentRb.linearVelocity = Vector3.zero;
                 currentRb.angularVelocity = Vector3.zero;
             }
 

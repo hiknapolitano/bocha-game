@@ -66,12 +66,12 @@ namespace BochaGame
             yield return null;
 
             // Gather references
-            if (courtSetup == null) courtSetup = FindObjectOfType<CourtSetup>();
-            if (ballLauncher == null) ballLauncher = FindObjectOfType<BallLauncher>();
-            if (cameraController == null) cameraController = FindObjectOfType<CameraController>();
-            if (scoreManager == null) scoreManager = FindObjectOfType<ScoreManager>();
-            if (uiManager == null) uiManager = FindObjectOfType<UIManager>();
-            if (aiPlayer == null) aiPlayer = FindObjectOfType<AIPlayer>();
+            if (courtSetup == null) courtSetup = FindFirstObjectByType<CourtSetup>();
+            if (ballLauncher == null) ballLauncher = FindFirstObjectByType<BallLauncher>();
+            if (cameraController == null) cameraController = FindFirstObjectByType<CameraController>();
+            if (scoreManager == null) scoreManager = FindFirstObjectByType<ScoreManager>();
+            if (uiManager == null) uiManager = FindFirstObjectByType<UIManager>();
+            if (aiPlayer == null) aiPlayer = FindFirstObjectByType<AIPlayer>();
 
             // Gather ball references from CourtSetup
             if (courtSetup != null)
@@ -132,7 +132,7 @@ namespace BochaGame
             Rigidbody rb = ball.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.velocity = Vector3.zero;
+                rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
             ball.transform.position = position;
