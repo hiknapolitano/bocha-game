@@ -16,8 +16,8 @@ namespace BochaGame
         [Header("Launch Settings")]
         public float minPower = 3f;
         public float maxPower = 18f;
-        public float pallinoMinPower = 2f;
-        public float pallinoMaxPower = 6f;
+        public float pallinoMinPower = 1f;
+        public float pallinoMaxPower = 3f;
 
         [Header("Position Step")]
         public float positionSpeed = 3f;

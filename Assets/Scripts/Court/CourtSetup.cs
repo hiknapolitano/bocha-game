@@ -15,7 +15,7 @@ namespace BochaGame
         public float bocceBallRadius = 0.11f;
         public float pallinoRadius = 0.06f;
         public float ballMass = 0.9f;    // ~900g for bocce ball
-        public float pallinoMass = 0.06f; // ~60g for pallino
+        public float pallinoMass = 0.3f;  // heavier in-game for physics stability
 
         [Header("Physics")]
         public float dynamicFriction = 0.5f;
