@@ -52,6 +52,10 @@ namespace BochaGame
             }
         }
 
+        [Header("Zoom Settings")]
+        public Vector3 zoomOffset = new Vector3(0, 2.5f, -2.5f); // close-up when ball is slow
+        public float zoomSpeedThreshold = 3f; // below this speed, fully zoomed in
+
         private void UpdateFollow()
         {
             if (followTarget == null)
@@ -60,32 +64,35 @@ namespace BochaGame
                 return;
             }
 
-            // Check if we're in aiming state — use a behind-the-ball view
             GameManager gm = GameManager.Instance;
             bool isAiming = gm != null && (gm.CurrentState == GameState.Aiming || gm.CurrentState == GameState.ThrowingPallino);
+            bool isBallMoving = gm != null && gm.CurrentState == GameState.BallInMotion;
 
             Vector3 desiredOffset;
             if (isAiming)
             {
-                // Camera behind the ball looking forward (down the court)
                 desiredOffset = aimOffset;
+            }
+            else if (isBallMoving)
+            {
+                // Dynamic zoom: closer as ball slows down
+                Rigidbody rb = followTarget.GetComponent<Rigidbody>();
+                float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
+                float zoomT = 1f - Mathf.Clamp01(speed / zoomSpeedThreshold);
+                zoomT = zoomT * zoomT; // ease-in for smooth zoom
+                desiredOffset = Vector3.Lerp(followOffset, zoomOffset, zoomT);
             }
             else
             {
-                // Camera follows the ball with the standard offset
                 desiredOffset = followOffset;
             }
 
             Vector3 desiredPosition = followTarget.position + desiredOffset;
             transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, followSmoothTime);
 
-            // Look at the ball
             Vector3 lookTarget = followTarget.position;
             if (isAiming)
-            {
-                // Look slightly ahead of the ball during aiming
                 lookTarget += Vector3.forward * 5f;
-            }
 
             Quaternion desiredRotation = Quaternion.LookRotation(lookTarget - transform.position);
             transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, Time.deltaTime * 5f);

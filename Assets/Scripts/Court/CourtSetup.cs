@@ -86,7 +86,7 @@ namespace BochaGame
             GameObject surround = GameObject.CreatePrimitive(PrimitiveType.Cube);
             surround.name = "Surround";
             surround.transform.SetParent(court.transform);
-            surround.transform.localScale = new Vector3(courtWidth * 4, 0.08f, courtLength * 1.5f);
+            surround.transform.localScale = new Vector3(courtWidth * 8, 0.08f, courtLength * 1.5f);
             surround.transform.localPosition = new Vector3(0, -0.1f, 0);
             surround.GetComponent<Renderer>().material = CreateMaterial(surroundColor);
             surround.GetComponent<Collider>().material = courtPhysicsMat;

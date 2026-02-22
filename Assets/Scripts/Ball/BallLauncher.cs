@@ -28,9 +28,10 @@ namespace BochaGame
 
         [Header("Power Step — Sweet Spot")]
         public float powerOscillateSpeed = 1.0f;
-        public float sweetSpotMin = 0.745f; // normalized 0..1
-        public float sweetSpotMax = 0.755f;
-        public float overpowerSpreadMax = 15f; // max random angle deviation in degrees
+        public float sweetSpotMin = 0.72f; // normalized 0..1
+        public float sweetSpotMax = 0.78f;
+        public float overpowerSpreadMax = 20f; // max random angle deviation in degrees
+        public float overpowerPowerLoss = 0.4f; // max fraction of power lost when overpowered
 
         [Header("Trajectory Preview")]
         public int trajectoryPoints = 30;
@@ -290,11 +291,16 @@ namespace BochaGame
                 }
                 else if (normalized > sweetSpotMax)
                 {
-                    // OVERPOWERED — add random angle deviation
+                    // OVERPOWERED — harsh penalty: random angle + power loss
                     wasOverpowered = true;
                     float excessRatio = (normalized - sweetSpotMax) / (1f - sweetSpotMax);
                     overpowerAmount = excessRatio * overpowerSpreadMax;
-                    Debug.Log($"[BallLauncher] OVERPOWERED! Power={currentPower:F1}, spread=±{overpowerAmount:F1}°");
+                    // Reduce power: the more you overshoot, the more power you lose
+                    float powerLoss = excessRatio * overpowerPowerLoss;
+                    currentPower = currentPower * (1f - powerLoss);
+                    // Also add random power variation (±15%)
+                    currentPower *= Random.Range(0.85f, 1.0f);
+                    Debug.Log($"[BallLauncher] OVERPOWERED! Power reduced to {currentPower:F1}, spread=±{overpowerAmount:F1}°");
                 }
                 else
                 {
