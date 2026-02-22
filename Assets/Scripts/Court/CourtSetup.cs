@@ -284,7 +284,6 @@ namespace BochaGame
             }
             else
             {
-                // Create a camera if none exists
                 GameObject camObj = new GameObject("MainCamera");
                 camObj.tag = "MainCamera";
                 Camera cam = camObj.AddComponent<Camera>();
@@ -301,6 +300,19 @@ namespace BochaGame
             // Create AIPlayer
             GameObject aiObj = new GameObject("AIPlayer");
             aiObj.AddComponent<AIPlayer>();
+
+            // Create Player Characters
+            GameObject player1Obj = new GameObject("Player1Character");
+            PlayerCharacter p1 = player1Obj.AddComponent<PlayerCharacter>();
+            p1.SetTeamColor(team1Color);
+            p1.playerName = "Player";
+            p1.SetVisible(false);
+
+            GameObject player2Obj = new GameObject("Player2Character");
+            PlayerCharacter p2 = player2Obj.AddComponent<PlayerCharacter>();
+            p2.SetTeamColor(team2Color);
+            p2.playerName = "AI";
+            p2.SetVisible(false);
         }
 
         /// <summary>

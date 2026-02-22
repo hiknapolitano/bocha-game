@@ -14,6 +14,7 @@ namespace BochaGame
         private Text roundResultText;
         private Slider powerBar;
         private GameObject powerBarContainer;
+        private Image sweetSpotIndicator;
         private GameObject gameOverPanel;
         private Text gameOverText;
         private Button restartButton;
@@ -21,6 +22,9 @@ namespace BochaGame
         // Colors
         private Color team1UIColor = new Color(0.9f, 0.25f, 0.25f);
         private Color team2UIColor = new Color(0.25f, 0.4f, 0.9f);
+        private Color sweetSpotColor = new Color(0.2f, 0.85f, 0.3f, 0.7f);
+        private Color overpowerColor = new Color(0.9f, 0.3f, 0.2f, 0.5f);
+        private Color underpowerColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
 
         private void Awake()
         {
@@ -29,7 +33,6 @@ namespace BochaGame
 
         private void Start()
         {
-            // Subscribe to events
             GameManager gm = GameManager.Instance;
             if (gm != null)
             {
@@ -40,7 +43,6 @@ namespace BochaGame
                 gm.OnGameOver += HandleGameOver;
             }
 
-            // Initial UI state
             if (powerBarContainer != null) powerBarContainer.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (roundResultText != null) roundResultText.gameObject.SetActive(false);
@@ -62,23 +64,19 @@ namespace BochaGame
         private void Update()
         {
             GameManager gm = GameManager.Instance;
-            if (gm == null) return;
+            if (gm == null || gm.ballLauncher == null) return;
 
-            // Update step indicator and power bar based on current throw step
-            if (gm.ballLauncher != null)
-            {
-                LaunchStep step = gm.ballLauncher.GetCurrentStep();
-                bool isAITurn = gm.CurrentTeam == Team.Team2;
+            LaunchStep step = gm.ballLauncher.GetCurrentStep();
+            bool isAITurn = gm.CurrentTeam == Team.Team2;
 
-                UpdateStepIndicator(step, isAITurn);
+            UpdateStepIndicator(step, isAITurn);
 
-                // Show power bar only during Power step
-                bool showPower = step == LaunchStep.Power && !isAITurn;
-                if (powerBarContainer != null)
-                    powerBarContainer.SetActive(showPower);
-                if (showPower && powerBar != null)
-                    powerBar.value = gm.ballLauncher.GetPowerNormalized();
-            }
+            // Show power bar only during Power step
+            bool showPower = step == LaunchStep.Power && !isAITurn;
+            if (powerBarContainer != null)
+                powerBarContainer.SetActive(showPower);
+            if (showPower && powerBar != null)
+                powerBar.value = gm.ballLauncher.GetPowerNormalized();
         }
 
         private void UpdateStepIndicator(LaunchStep step, bool isAITurn)
@@ -99,12 +97,12 @@ namespace BochaGame
                     stepText.color = Color.white;
                     break;
                 case LaunchStep.Aim:
-                    stepText.text = "← A/D →  Aim direction\n<size=20>Press SPACE or Click to confirm</size>";
-                    stepText.color = Color.white;
+                    stepText.text = "Direction swinging...\n<size=20>Press SPACE or Click to LOCK the angle!</size>";
+                    stepText.color = new Color(0.4f, 0.9f, 1f);
                     break;
                 case LaunchStep.Power:
-                    stepText.text = "Power charging...\n<size=20>Press SPACE or Click to lock power!</size>";
-                    stepText.color = new Color(1f, 0.6f, 0.1f);
+                    stepText.text = "Hit the <color=#33DD55>GREEN ZONE</color> for a perfect throw!\n<size=20>Press SPACE or Click to lock power</size>";
+                    stepText.color = new Color(1f, 0.85f, 0.3f);
                     break;
                 default:
                     stepText.text = "";
@@ -160,21 +158,46 @@ namespace BochaGame
             stepText.supportRichText = true;
             AddTextShadow(stepText);
 
-            // --- Power Bar (bottom center) ---
+            // --- Power Bar with Sweet Spot (bottom center) ---
+            CreatePowerBarWithSweetSpot(canvasObj.transform);
+
+            // --- Round Result (center screen) ---
+            roundResultText = CreateText(canvasObj.transform, "RoundResult",
+                "",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                48, TextAnchor.MiddleCenter, FontStyle.Bold);
+            AddTextShadow(roundResultText);
+            roundResultText.gameObject.SetActive(false);
+
+            // --- Game Over Panel ---
+            CreateGameOverPanel(canvasObj.transform);
+
+            // --- Instructions (bottom right) ---
+            Text instructions = CreateText(canvasObj.transform, "Instructions",
+                "Position → Aim → Power | Space/Click to confirm each step",
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f),
+                new Vector2(-20f, 15f),
+                16, TextAnchor.LowerRight, FontStyle.Normal);
+            instructions.color = new Color(1f, 1f, 1f, 0.5f);
+        }
+
+        private void CreatePowerBarWithSweetSpot(Transform parent)
+        {
             powerBarContainer = new GameObject("PowerBarContainer");
-            powerBarContainer.transform.SetParent(canvasObj.transform, false);
+            powerBarContainer.transform.SetParent(parent, false);
             RectTransform pbcRect = powerBarContainer.AddComponent<RectTransform>();
             pbcRect.anchorMin = new Vector2(0.5f, 0f);
             pbcRect.anchorMax = new Vector2(0.5f, 0f);
             pbcRect.pivot = new Vector2(0.5f, 0f);
             pbcRect.anchoredPosition = new Vector2(0, 40f);
-            pbcRect.sizeDelta = new Vector2(400, 30);
+            pbcRect.sizeDelta = new Vector2(500, 40);
 
-            // Power bar background
+            // Background
             GameObject bgObj = new GameObject("Background");
             bgObj.transform.SetParent(powerBarContainer.transform, false);
             Image bgImg = bgObj.AddComponent<Image>();
-            bgImg.color = new Color(0.2f, 0.2f, 0.2f, 0.7f);
+            bgImg.color = new Color(0.15f, 0.15f, 0.15f, 0.8f);
             RectTransform bgRect = bgObj.GetComponent<RectTransform>();
             bgRect.anchorMin = Vector2.zero;
             bgRect.anchorMax = Vector2.one;
@@ -182,11 +205,48 @@ namespace BochaGame
             bgRect.offsetMin = Vector2.zero;
             bgRect.offsetMax = Vector2.zero;
 
-            // Slider
+            // Overpower zone (red, above sweet spot)
+            float sweetMin = 0.65f;
+            float sweetMax = 0.80f;
+
+            // Get sweet spot values from BallLauncher if available
+            GameManager gm = GameManager.Instance;
+            if (gm != null && gm.ballLauncher != null)
+            {
+                sweetMin = gm.ballLauncher.GetSweetSpotMin();
+                sweetMax = gm.ballLauncher.GetSweetSpotMax();
+            }
+
+            // Red zone (above sweet spot)
+            GameObject overpowerZone = new GameObject("OverpowerZone");
+            overpowerZone.transform.SetParent(powerBarContainer.transform, false);
+            Image overpowerImg = overpowerZone.AddComponent<Image>();
+            overpowerImg.color = overpowerColor;
+            RectTransform overRect = overpowerZone.GetComponent<RectTransform>();
+            overRect.anchorMin = new Vector2(sweetMax, 0.1f);
+            overRect.anchorMax = new Vector2(1f, 0.9f);
+            overRect.sizeDelta = Vector2.zero;
+            overRect.offsetMin = Vector2.zero;
+            overRect.offsetMax = Vector2.zero;
+
+            // Sweet spot zone (green)
+            GameObject sweetSpotZone = new GameObject("SweetSpotZone");
+            sweetSpotZone.transform.SetParent(powerBarContainer.transform, false);
+            sweetSpotIndicator = sweetSpotZone.AddComponent<Image>();
+            sweetSpotIndicator.color = sweetSpotColor;
+            RectTransform sweetRect = sweetSpotZone.GetComponent<RectTransform>();
+            sweetRect.anchorMin = new Vector2(sweetMin, 0.05f);
+            sweetRect.anchorMax = new Vector2(sweetMax, 0.95f);
+            sweetRect.sizeDelta = Vector2.zero;
+            sweetRect.offsetMin = Vector2.zero;
+            sweetRect.offsetMax = Vector2.zero;
+
+            // Slider (the moving cursor)
             GameObject sliderObj = new GameObject("PowerSlider");
             sliderObj.transform.SetParent(powerBarContainer.transform, false);
             powerBar = sliderObj.AddComponent<Slider>();
             powerBar.interactable = false;
+            powerBar.direction = Slider.Direction.LeftToRight;
             powerBar.minValue = 0f;
             powerBar.maxValue = 1f;
             powerBar.value = 0f;
@@ -210,7 +270,7 @@ namespace BochaGame
             GameObject fill = new GameObject("Fill");
             fill.transform.SetParent(fillArea.transform, false);
             Image fillImg = fill.AddComponent<Image>();
-            fillImg.color = new Color(1f, 0.6f, 0.1f);
+            fillImg.color = new Color(1f, 0.85f, 0.2f, 0.9f);
             RectTransform fillRect = fill.GetComponent<RectTransform>();
             fillRect.anchorMin = Vector2.zero;
             fillRect.anchorMax = Vector2.one;
@@ -220,27 +280,30 @@ namespace BochaGame
 
             powerBar.fillRect = fillRect;
 
-            // Power label
+            // Labels
             CreateText(powerBarContainer.transform, "PowerLabel",
                 "POWER",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0, 5f),
                 18, TextAnchor.LowerCenter, FontStyle.Bold);
 
-            powerBarContainer.SetActive(false);
-
-            // --- Round Result (center screen, shown briefly) ---
-            roundResultText = CreateText(canvasObj.transform, "RoundResult",
-                "",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            // Sweet spot label
+            Text sweetLabel = CreateText(powerBarContainer.transform, "SweetLabel",
+                "PERFECT",
+                new Vector2((sweetMin + sweetMax) / 2f, 0.5f),
+                new Vector2((sweetMin + sweetMax) / 2f, 0.5f),
+                new Vector2(0.5f, 0.5f),
                 Vector2.zero,
-                48, TextAnchor.MiddleCenter, FontStyle.Bold);
-            AddTextShadow(roundResultText);
-            roundResultText.gameObject.SetActive(false);
+                12, TextAnchor.MiddleCenter, FontStyle.Bold);
+            sweetLabel.color = new Color(1f, 1f, 1f, 0.9f);
 
-            // --- Game Over Panel ---
+            powerBarContainer.SetActive(false);
+        }
+
+        private void CreateGameOverPanel(Transform parent)
+        {
             gameOverPanel = new GameObject("GameOverPanel");
-            gameOverPanel.transform.SetParent(canvasObj.transform, false);
+            gameOverPanel.transform.SetParent(parent, false);
             RectTransform goPanelRect = gameOverPanel.AddComponent<RectTransform>();
             goPanelRect.anchorMin = Vector2.zero;
             goPanelRect.anchorMax = Vector2.one;
@@ -255,7 +318,6 @@ namespace BochaGame
                 64, TextAnchor.MiddleCenter, FontStyle.Bold);
             AddTextShadow(gameOverText);
 
-            // Restart button
             GameObject btnObj = new GameObject("RestartButton");
             btnObj.transform.SetParent(gameOverPanel.transform, false);
             restartButton = btnObj.AddComponent<Button>();
@@ -276,14 +338,6 @@ namespace BochaGame
 
             restartButton.onClick.AddListener(OnRestartClicked);
             gameOverPanel.SetActive(false);
-
-            // --- Instructions (bottom right) ---
-            Text instructions = CreateText(canvasObj.transform, "Instructions",
-                "A/D: Move/Aim  |  Space/Click: Confirm  |  Watch the power bar!",
-                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f),
-                new Vector2(-20f, 15f),
-                16, TextAnchor.LowerRight, FontStyle.Normal);
-            instructions.color = new Color(1f, 1f, 1f, 0.5f);
         }
 
         private Text CreateText(Transform parent, string name, string content,
@@ -356,7 +410,6 @@ namespace BochaGame
         private void HandleTurnChanged(Team team)
         {
             if (turnText == null) return;
-
             if (team == Team.Team1)
             {
                 turnText.text = "Your Turn";
@@ -372,20 +425,16 @@ namespace BochaGame
         private void HandleScoreUpdated(int team1Score, int team2Score)
         {
             if (scoreText != null)
-            {
                 scoreText.text = $"Player  {team1Score}  ×  {team2Score}  AI";
-            }
         }
 
         private void HandleRoundEnded(Team scoringTeam, int points)
         {
             if (roundResultText == null) return;
-
             string teamName = scoringTeam == Team.Team1 ? "Player" : "AI";
             roundResultText.text = $"{teamName} scores {points} point{(points > 1 ? "s" : "")}!";
             roundResultText.color = scoringTeam == Team.Team1 ? team1UIColor : team2UIColor;
             roundResultText.gameObject.SetActive(true);
-
             StartCoroutine(HideRoundResult(2.5f));
         }
 
@@ -399,24 +448,19 @@ namespace BochaGame
         private void HandleGameOver(Team winner)
         {
             if (gameOverPanel == null || gameOverText == null) return;
-
             string winnerName = winner == Team.Team1 ? "YOU WIN!" : "AI WINS!";
             gameOverText.text = winnerName;
             gameOverText.color = winner == Team.Team1 ? team1UIColor : team2UIColor;
             gameOverPanel.SetActive(true);
-
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
 
         private void OnRestartClicked()
         {
-            if (gameOverPanel != null)
-                gameOverPanel.SetActive(false);
-
+            if (gameOverPanel != null) gameOverPanel.SetActive(false);
             GameManager gm = GameManager.Instance;
-            if (gm != null)
-                gm.RestartGame();
+            if (gm != null) gm.RestartGame();
         }
     }
 }

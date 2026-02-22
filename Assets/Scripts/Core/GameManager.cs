@@ -20,6 +20,8 @@ namespace BochaGame
         public UIManager uiManager;
         public AIPlayer aiPlayer;
         public CourtSetup courtSetup;
+        public PlayerCharacter player1Character;
+        public PlayerCharacter player2Character;
 
         // Game state
         public GameState CurrentState { get; private set; } = GameState.WaitingToStart;
@@ -74,6 +76,16 @@ namespace BochaGame
             if (scoreManager == null) scoreManager = FindFirstObjectByType<ScoreManager>();
             if (uiManager == null) uiManager = FindFirstObjectByType<UIManager>();
             if (aiPlayer == null) aiPlayer = FindFirstObjectByType<AIPlayer>();
+
+            // Find player characters
+            PlayerCharacter[] characters = FindObjectsByType<PlayerCharacter>(FindObjectsSortMode.None);
+            foreach (var pc in characters)
+            {
+                if (pc.playerName == "Player" && player1Character == null)
+                    player1Character = pc;
+                else if (pc.playerName == "AI" && player2Character == null)
+                    player2Character = pc;
+            }
 
             // Log reference status
             Debug.Log($"[GameManager] References: court={courtSetup != null}, launcher={ballLauncher != null}, " +
@@ -182,17 +194,16 @@ namespace BochaGame
         {
             if (Pallino == null) return;
 
-            // Position pallino at the throw position
             Vector3 throwPos = courtSetup != null ? courtSetup.GetThrowPosition() : new Vector3(0, 0.5f, -10f);
             Pallino.transform.position = throwPos;
             Pallino.SetActive(true);
 
             if (ballLauncher != null)
-            {
                 ballLauncher.SetupThrow(Pallino, true);
-            }
 
-            // Camera follows the ball during setup so player can see it
+            // Position player character at throw spot
+            PositionActivePlayer(throwPos);
+
             if (cameraController != null)
                 cameraController.FollowBall(Pallino.transform);
 
@@ -214,11 +225,11 @@ namespace BochaGame
             ballToThrow.SetActive(true);
 
             if (ballLauncher != null)
-            {
                 ballLauncher.SetupThrow(ballToThrow, false);
-            }
 
-            // Camera follows the ball during setup so player can see it
+            // Position player character at throw spot
+            PositionActivePlayer(throwPos);
+
             if (cameraController != null)
                 cameraController.FollowBall(ballToThrow.transform);
 
@@ -241,6 +252,37 @@ namespace BochaGame
                 {
                     Debug.LogWarning("[GameManager] AI player is null! Cannot trigger AI turn.");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Position the active team's player character at the throw spot.
+        /// Hide the other team's character.
+        /// </summary>
+        private void PositionActivePlayer(Vector3 throwPos)
+        {
+            // Character stands slightly behind and to the side of the throw position
+            Vector3 charPos = throwPos + new Vector3(-0.5f, 0, -1.2f);
+
+            if (CurrentTeam == Team.Team1)
+            {
+                if (player1Character != null)
+                {
+                    player1Character.SetPosition(charPos, 0f);
+                    player1Character.SetVisible(true);
+                }
+                if (player2Character != null)
+                    player2Character.SetVisible(false);
+            }
+            else
+            {
+                if (player2Character != null)
+                {
+                    player2Character.SetPosition(charPos, 0f);
+                    player2Character.SetVisible(true);
+                }
+                if (player1Character != null)
+                    player1Character.SetVisible(false);
             }
         }
 

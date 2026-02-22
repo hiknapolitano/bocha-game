@@ -22,12 +22,15 @@ namespace BochaGame
         [Header("Position Step")]
         public float positionSpeed = 3f;
 
-        [Header("Aim Step")]
-        public float aimSpeed = 60f;
-        public float maxAimAngle = 60f;
+        [Header("Aim Step — Auto Oscillation")]
+        public float aimOscillateSpeed = 1.2f; // full swings per second
+        public float maxAimAngle = 45f;
 
-        [Header("Power Step")]
-        public float powerOscillateSpeed = 1.5f; // full cycles per second
+        [Header("Power Step — Sweet Spot")]
+        public float powerOscillateSpeed = 1.5f;
+        public float sweetSpotMin = 0.65f; // normalized 0..1
+        public float sweetSpotMax = 0.80f;
+        public float overpowerSpreadMax = 15f; // max random angle deviation in degrees
 
         [Header("Trajectory Preview")]
         public int trajectoryPoints = 30;
@@ -42,12 +45,17 @@ namespace BochaGame
         private float currentPower = 0f;
         private float aimAngle = 0f;
         private float positionX = 0f;
-        private float powerT = 0f; // 0..1 oscillating value
+        private float powerT = 0f;
+        private float aimT = 0f;
         private float activePowerMin;
         private float activePowerMax;
 
+        // Sweet spot result
+        private bool wasOverpowered = false;
+        private float overpowerAmount = 0f;
+
         // Court bounds for positioning
-        private float courtHalfWidth = 1.8f; // slightly inside the walls
+        private float courtHalfWidth = 1.8f;
 
         // Trajectory visualization
         private LineRenderer trajectoryLine;
@@ -85,12 +93,10 @@ namespace BochaGame
             aimArrow = new GameObject("AimArrow");
             aimArrow.transform.SetParent(transform);
 
-            // Create a simple arrow using a stretched cube
             GameObject shaft = GameObject.CreatePrimitive(PrimitiveType.Cube);
             shaft.transform.SetParent(aimArrow.transform);
             shaft.transform.localScale = new Vector3(0.08f, 0.02f, 1.5f);
             shaft.transform.localPosition = new Vector3(0, 0.01f, 0.75f);
-
             Collider shaftCol = shaft.GetComponent<Collider>();
             if (shaftCol != null) Object.Destroy(shaftCol);
 
@@ -99,11 +105,9 @@ namespace BochaGame
             head.transform.localScale = new Vector3(0.3f, 0.02f, 0.3f);
             head.transform.localPosition = new Vector3(0, 0.01f, 1.6f);
             head.transform.localRotation = Quaternion.Euler(0, 45, 0);
-
             Collider headCol = head.GetComponent<Collider>();
             if (headCol != null) Object.Destroy(headCol);
 
-            // Color the arrow
             Shader arrowShader = Shader.Find("Universal Render Pipeline/Lit");
             if (arrowShader == null) arrowShader = Shader.Find("Standard");
             if (arrowShader == null) arrowShader = Shader.Find("Diffuse");
@@ -134,27 +138,27 @@ namespace BochaGame
             positionX = 0f;
             currentPower = 0f;
             powerT = 0f;
+            aimT = 0f;
             throwDirection = Vector3.forward;
+            wasOverpowered = false;
+            overpowerAmount = 0f;
 
-            // Use lower power for pallino (it's very light)
+            // Use lower power for pallino
             activePowerMin = pallinoThrow ? pallinoMinPower : minPower;
             activePowerMax = pallinoThrow ? pallinoMaxPower : maxPower;
 
-            // Get the base throw position from court setup
+            // Get throw position
             GameManager gm = GameManager.Instance;
             throwPosition = (gm != null && gm.courtSetup != null)
                 ? gm.courtSetup.GetThrowPosition()
                 : new Vector3(0, 0.5f, -10f);
 
-            // Get court width for position bounds
             if (gm != null && gm.courtSetup != null)
                 courtHalfWidth = gm.courtSetup.courtWidth / 2f - 0.2f;
 
-            // Position ball at the throw position
             currentBall.transform.position = throwPosition;
             currentBall.SetActive(true);
 
-            // Make the ball kinematic while aiming
             if (currentRb != null)
             {
                 currentRb.isKinematic = true;
@@ -162,10 +166,7 @@ namespace BochaGame
                 currentRb.angularVelocity = Vector3.zero;
             }
 
-            // Start at Position step
             currentStep = LaunchStep.Position;
-
-            // Show aim arrow
             aimArrow.SetActive(true);
             UpdateBallPosition();
             UpdateAimVisuals();
@@ -183,7 +184,6 @@ namespace BochaGame
             GameManager gm = GameManager.Instance;
             if (gm != null && gm.CurrentTeam == Team.Team2)
             {
-                // Hide visuals during AI turn
                 aimArrow.SetActive(false);
                 if (trajectoryLine != null)
                     trajectoryLine.positionCount = 0;
@@ -206,10 +206,9 @@ namespace BochaGame
             UpdateAimVisuals();
         }
 
-        // ===== STEP 1: POSITION =====
+        // ===== STEP 1: POSITION — Free A/D control =====
         private void HandlePositionStep()
         {
-            // A/D or Left/Right arrows to slide ball horizontally
             float input = 0f;
             if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
                 input = -1f;
@@ -218,55 +217,72 @@ namespace BochaGame
 
             positionX += input * positionSpeed * Time.deltaTime;
             positionX = Mathf.Clamp(positionX, -courtHalfWidth, courtHalfWidth);
-
             UpdateBallPosition();
 
-            // Confirm position
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
                 currentStep = LaunchStep.Aim;
+                aimT = 0f;
                 Debug.Log("[BallLauncher] Position confirmed. Moving to Aim step.");
             }
         }
 
-        // ===== STEP 2: AIM =====
+        // ===== STEP 2: AIM — Auto-oscillating, press to lock =====
         private void HandleAimStep()
         {
-            // A/D or Left/Right arrows to rotate aim direction
-            float input = 0f;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-                input = -1f;
-            else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-                input = 1f;
-
-            aimAngle += input * aimSpeed * Time.deltaTime;
-            aimAngle = Mathf.Clamp(aimAngle, -maxAimAngle, maxAimAngle);
+            // Auto-oscillate the aim angle left and right
+            aimT += Time.deltaTime * aimOscillateSpeed;
+            // Sine wave: smoothly oscillates between -maxAimAngle and +maxAimAngle
+            aimAngle = Mathf.Sin(aimT * Mathf.PI * 2f) * maxAimAngle;
             throwDirection = Quaternion.Euler(0, aimAngle, 0) * Vector3.forward;
 
-            // Confirm aim
+            // Lock direction
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
                 currentStep = LaunchStep.Power;
                 powerT = 0f;
-                Debug.Log("[BallLauncher] Aim confirmed. Moving to Power step.");
+                Debug.Log($"[BallLauncher] Aim locked at {aimAngle:F1}°. Moving to Power step.");
             }
         }
 
-        // ===== STEP 3: POWER =====
+        // ===== STEP 3: POWER — Sweet spot bar =====
         private void HandlePowerStep()
         {
-            // Auto-oscillate power (ping-pong from 0 to 1)
+            // Auto-oscillate power (ping-pong 0..1)
             powerT += Time.deltaTime * powerOscillateSpeed;
-            float oscillation = Mathf.PingPong(powerT, 1f);
-            currentPower = Mathf.Lerp(activePowerMin, activePowerMax, oscillation);
+            float normalized = Mathf.PingPong(powerT, 1f);
+            currentPower = Mathf.Lerp(activePowerMin, activePowerMax, normalized);
 
             // Show trajectory preview
             ShowTrajectory();
 
-            // Lock power and throw
+            // Lock power
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
             {
-                Debug.Log($"[BallLauncher] Power locked at {currentPower:F1}. Throwing!");
+                // Determine sweet spot result
+                if (normalized >= sweetSpotMin && normalized <= sweetSpotMax)
+                {
+                    // PERFECT — sweet spot hit!
+                    wasOverpowered = false;
+                    overpowerAmount = 0f;
+                    Debug.Log($"[BallLauncher] SWEET SPOT! Power={currentPower:F1}");
+                }
+                else if (normalized > sweetSpotMax)
+                {
+                    // OVERPOWERED — add random angle deviation
+                    wasOverpowered = true;
+                    float excessRatio = (normalized - sweetSpotMax) / (1f - sweetSpotMax);
+                    overpowerAmount = excessRatio * overpowerSpreadMax;
+                    Debug.Log($"[BallLauncher] OVERPOWERED! Power={currentPower:F1}, spread=±{overpowerAmount:F1}°");
+                }
+                else
+                {
+                    // UNDERPOWERED — just less power, no penalty
+                    wasOverpowered = false;
+                    overpowerAmount = 0f;
+                    Debug.Log($"[BallLauncher] Underpowered. Power={currentPower:F1}");
+                }
+
                 ThrowBall();
             }
         }
@@ -274,7 +290,6 @@ namespace BochaGame
         private void UpdateBallPosition()
         {
             if (currentBall == null) return;
-
             Vector3 pos = throwPosition;
             pos.x = positionX;
             currentBall.transform.position = pos;
@@ -283,28 +298,21 @@ namespace BochaGame
         private void UpdateAimVisuals()
         {
             if (currentBall == null) return;
-
             Vector3 ballPos = currentBall.transform.position;
 
-            // Show aim arrow during Position and Aim steps
-            if (aimArrow != null && (currentStep == LaunchStep.Position || currentStep == LaunchStep.Aim || currentStep == LaunchStep.Power))
+            if (aimArrow != null && currentStep != LaunchStep.Idle && currentStep != LaunchStep.Throwing)
             {
                 aimArrow.SetActive(true);
                 aimArrow.transform.position = new Vector3(ballPos.x, 0.05f, ballPos.z);
                 aimArrow.transform.rotation = Quaternion.LookRotation(throwDirection);
             }
 
-            // Show trajectory during Power step
             if (trajectoryLine != null)
             {
                 if (currentStep == LaunchStep.Power)
-                {
                     ShowTrajectory();
-                }
                 else
-                {
                     trajectoryLine.positionCount = 0;
-                }
             }
         }
 
@@ -332,47 +340,56 @@ namespace BochaGame
 
             currentStep = LaunchStep.Throwing;
 
+            // Apply overpower inaccuracy — random angle deviation
+            Vector3 finalDirection = throwDirection;
+            if (wasOverpowered && overpowerAmount > 0f)
+            {
+                float randomDeviation = Random.Range(-overpowerAmount, overpowerAmount);
+                finalDirection = Quaternion.Euler(0, randomDeviation, 0) * finalDirection;
+                Debug.Log($"[BallLauncher] Overpower deviation: {randomDeviation:F1}°");
+            }
+
             // Make ball physics-driven
             currentRb.isKinematic = false;
 
             // Apply force
-            Vector3 force = throwDirection * currentPower;
-            // Only add upward arc for bocce balls, not pallino (ground roll)
+            Vector3 force = finalDirection * currentPower;
             if (!isPallinoThrow)
                 force.y = currentPower * 0.08f;
             currentRb.AddForce(force, ForceMode.Impulse);
 
             // Start settling detection
             if (currentController != null)
-            {
                 currentController.StartTracking();
-            }
 
             // Notify game manager
-            if (GameManager.Instance != null)
+            GameManager gm = GameManager.Instance;
+            if (gm != null)
             {
-                GameManager.Instance.OnBallThrown(currentBall);
+                gm.OnBallThrown(currentBall);
+
+                // Trigger player throw animation
+                if (gm.CurrentTeam == Team.Team1 && gm.player1Character != null)
+                    gm.player1Character.PlayThrowAnimation();
+                else if (gm.CurrentTeam == Team.Team2 && gm.player2Character != null)
+                    gm.player2Character.PlayThrowAnimation();
             }
 
             // Follow with camera
-            CameraController cam = GameManager.Instance?.cameraController;
+            CameraController cam = gm?.cameraController;
             if (cam != null)
-            {
                 cam.FollowBall(currentBall.transform);
-            }
 
             // Hide aim visuals
             aimArrow.SetActive(false);
             if (trajectoryLine != null)
                 trajectoryLine.enabled = false;
 
-            // Reset step after throw completes
             currentStep = LaunchStep.Idle;
         }
 
         /// <summary>
-        /// Called by AI to execute a throw with specific parameters.
-        /// Bypasses the multi-step flow.
+        /// Called by AI — bypasses multi-step flow.
         /// </summary>
         public void AIThrow(float power, float angle)
         {
@@ -384,36 +401,27 @@ namespace BochaGame
 
             aimAngle = angle;
             throwDirection = Quaternion.Euler(0, angle, 0) * Vector3.forward;
-            currentPower = Mathf.Clamp(power, minPower, maxPower);
+            currentPower = Mathf.Clamp(power, activePowerMin, activePowerMax);
+            wasOverpowered = false;
+            overpowerAmount = 0f;
 
             ThrowBall();
         }
 
         // ===== PUBLIC GETTERS FOR UI =====
 
-        public LaunchStep GetCurrentStep()
-        {
-            return currentStep;
-        }
+        public LaunchStep GetCurrentStep() => currentStep;
 
         public float GetPowerNormalized()
         {
             return Mathf.InverseLerp(activePowerMin, activePowerMax, currentPower);
         }
 
-        public bool IsAiming()
-        {
-            return currentStep != LaunchStep.Idle && currentStep != LaunchStep.Throwing;
-        }
+        public float GetSweetSpotMin() => sweetSpotMin;
+        public float GetSweetSpotMax() => sweetSpotMax;
 
-        public bool IsCharging()
-        {
-            return currentStep == LaunchStep.Power;
-        }
-
-        public Vector3 GetThrowDirection()
-        {
-            return throwDirection;
-        }
+        public bool IsAiming() => currentStep != LaunchStep.Idle && currentStep != LaunchStep.Throwing;
+        public bool IsCharging() => currentStep == LaunchStep.Power;
+        public Vector3 GetThrowDirection() => throwDirection;
     }
 }
