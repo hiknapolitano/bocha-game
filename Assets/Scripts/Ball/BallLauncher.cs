@@ -28,8 +28,8 @@ namespace BochaGame
 
         [Header("Power Step — Sweet Spot")]
         public float powerOscillateSpeed = 1.5f;
-        public float sweetSpotMin = 0.65f; // normalized 0..1
-        public float sweetSpotMax = 0.80f;
+        public float sweetSpotMin = 0.68f; // normalized 0..1
+        public float sweetSpotMax = 0.76f;
         public float overpowerSpreadMax = 15f; // max random angle deviation in degrees
 
         [Header("Trajectory Preview")]
