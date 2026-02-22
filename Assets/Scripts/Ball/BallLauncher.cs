@@ -204,6 +204,27 @@ namespace BochaGame
             }
 
             UpdateAimVisuals();
+            UpdatePlayerCharacterPosition();
+        }
+
+        /// <summary>
+        /// Keep the player character following the ball during positioning/aiming.
+        /// </summary>
+        private void UpdatePlayerCharacterPosition()
+        {
+            if (currentBall == null) return;
+            GameManager gm = GameManager.Instance;
+            if (gm == null) return;
+
+            Vector3 ballPos = currentBall.transform.position;
+            Vector3 charPos = new Vector3(ballPos.x - 0.5f, 0f, ballPos.z - 1.2f);
+
+            PlayerCharacter activeChar = gm.CurrentTeam == Team.Team1
+                ? gm.player1Character
+                : gm.player2Character;
+
+            if (activeChar != null)
+                activeChar.SetPosition(charPos, 0f);
         }
 
         // ===== STEP 1: POSITION — Free A/D control =====
