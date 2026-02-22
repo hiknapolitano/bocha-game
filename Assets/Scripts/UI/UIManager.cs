@@ -15,6 +15,8 @@ namespace BochaGame
         private Slider powerBar;
         private GameObject powerBarContainer;
         private Image sweetSpotIndicator;
+        private RectTransform sweetSpotRect;
+        private RectTransform overpowerRect;
         private GameObject gameOverPanel;
         private Text gameOverText;
         private Button restartButton;
@@ -46,6 +48,29 @@ namespace BochaGame
             if (powerBarContainer != null) powerBarContainer.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (roundResultText != null) roundResultText.gameObject.SetActive(false);
+
+            // Now that GameManager exists, update sweet spot zones to match BallLauncher values
+            RefreshSweetSpotZones();
+        }
+
+        private void RefreshSweetSpotZones()
+        {
+            GameManager gm = GameManager.Instance;
+            if (gm == null || gm.ballLauncher == null) return;
+
+            float sweetMin = gm.ballLauncher.GetSweetSpotMin();
+            float sweetMax = gm.ballLauncher.GetSweetSpotMax();
+
+            if (sweetSpotRect != null)
+            {
+                sweetSpotRect.anchorMin = new Vector2(sweetMin, 0.05f);
+                sweetSpotRect.anchorMax = new Vector2(sweetMax, 0.95f);
+            }
+            if (overpowerRect != null)
+            {
+                overpowerRect.anchorMin = new Vector2(sweetMax, 0.1f);
+                overpowerRect.anchorMax = new Vector2(1f, 0.9f);
+            }
         }
 
         private void OnDestroy()
@@ -222,24 +247,24 @@ namespace BochaGame
             overpowerZone.transform.SetParent(powerBarContainer.transform, false);
             Image overpowerImg = overpowerZone.AddComponent<Image>();
             overpowerImg.color = overpowerColor;
-            RectTransform overRect = overpowerZone.GetComponent<RectTransform>();
-            overRect.anchorMin = new Vector2(sweetMax, 0.1f);
-            overRect.anchorMax = new Vector2(1f, 0.9f);
-            overRect.sizeDelta = Vector2.zero;
-            overRect.offsetMin = Vector2.zero;
-            overRect.offsetMax = Vector2.zero;
+            overpowerRect = overpowerZone.GetComponent<RectTransform>();
+            overpowerRect.anchorMin = new Vector2(sweetMax, 0.1f);
+            overpowerRect.anchorMax = new Vector2(1f, 0.9f);
+            overpowerRect.sizeDelta = Vector2.zero;
+            overpowerRect.offsetMin = Vector2.zero;
+            overpowerRect.offsetMax = Vector2.zero;
 
             // Sweet spot zone (green)
             GameObject sweetSpotZone = new GameObject("SweetSpotZone");
             sweetSpotZone.transform.SetParent(powerBarContainer.transform, false);
             sweetSpotIndicator = sweetSpotZone.AddComponent<Image>();
             sweetSpotIndicator.color = sweetSpotColor;
-            RectTransform sweetRect = sweetSpotZone.GetComponent<RectTransform>();
-            sweetRect.anchorMin = new Vector2(sweetMin, 0.05f);
-            sweetRect.anchorMax = new Vector2(sweetMax, 0.95f);
-            sweetRect.sizeDelta = Vector2.zero;
-            sweetRect.offsetMin = Vector2.zero;
-            sweetRect.offsetMax = Vector2.zero;
+            sweetSpotRect = sweetSpotZone.GetComponent<RectTransform>();
+            sweetSpotRect.anchorMin = new Vector2(sweetMin, 0.05f);
+            sweetSpotRect.anchorMax = new Vector2(sweetMax, 0.95f);
+            sweetSpotRect.sizeDelta = Vector2.zero;
+            sweetSpotRect.offsetMin = Vector2.zero;
+            sweetSpotRect.offsetMax = Vector2.zero;
 
             // Slider (the moving cursor)
             GameObject sliderObj = new GameObject("PowerSlider");
