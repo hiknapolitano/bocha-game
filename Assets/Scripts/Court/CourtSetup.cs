@@ -14,13 +14,13 @@ namespace BochaGame
         [Header("Ball Settings")]
         public float bocceBallRadius = 0.11f;
         public float pallinoRadius = 0.06f;
-        public float ballMass = 0.9f;    // ~900g for bocce ball
-        public float pallinoMass = 0.3f;  // heavier in-game for physics stability
+        public float ballMass = 0.5f;    // lighter for more reactive collisions
+        public float pallinoMass = 0.15f;  // lighter for floaty feel
 
         [Header("Physics")]
-        public float dynamicFriction = 0.5f;
-        public float staticFriction = 0.6f;
-        public float bounciness = 0.1f;
+        public float dynamicFriction = 0.2f;
+        public float staticFriction = 0.25f;
+        public float bounciness = 0.15f;
 
         [Header("Colors")]
         public Color team1Color = new Color(0.85f, 0.15f, 0.15f); // Red
@@ -60,11 +60,11 @@ namespace BochaGame
             courtPhysicsMat.bounceCombine = PhysicsMaterialCombine.Minimum;
 
             ballPhysicsMat = new PhysicsMaterial("BallSurface");
-            ballPhysicsMat.dynamicFriction = 0.4f;
-            ballPhysicsMat.staticFriction = 0.5f;
-            ballPhysicsMat.bounciness = 0.15f;
-            ballPhysicsMat.frictionCombine = PhysicsMaterialCombine.Average;
-            ballPhysicsMat.bounceCombine = PhysicsMaterialCombine.Minimum;
+            ballPhysicsMat.dynamicFriction = 0.15f;
+            ballPhysicsMat.staticFriction = 0.2f;
+            ballPhysicsMat.bounciness = 0.5f;
+            ballPhysicsMat.frictionCombine = PhysicsMaterialCombine.Minimum;
+            ballPhysicsMat.bounceCombine = PhysicsMaterialCombine.Maximum;
         }
 
         private void CreateCourt()
@@ -209,8 +209,8 @@ namespace BochaGame
 
             Rigidbody rb = ball.AddComponent<Rigidbody>();
             rb.mass = mass;
-            rb.linearDamping = 0.5f;
-            rb.angularDamping = 1.5f;
+            rb.linearDamping = 0.2f;
+            rb.angularDamping = 0.5f;
             rb.useGravity = true;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
