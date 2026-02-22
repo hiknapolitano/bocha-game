@@ -28,6 +28,8 @@ namespace BochaGame
         private Color overpowerColor = new Color(0.9f, 0.3f, 0.2f, 0.5f);
         private Color underpowerColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
 
+        private bool sweetSpotSynced = false;
+
         private void Awake()
         {
             CreateUI();
@@ -48,9 +50,6 @@ namespace BochaGame
             if (powerBarContainer != null) powerBarContainer.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (roundResultText != null) roundResultText.gameObject.SetActive(false);
-
-            // Now that GameManager exists, update sweet spot zones to match BallLauncher values
-            RefreshSweetSpotZones();
         }
 
         private void RefreshSweetSpotZones()
@@ -90,6 +89,13 @@ namespace BochaGame
         {
             GameManager gm = GameManager.Instance;
             if (gm == null || gm.ballLauncher == null) return;
+
+            // Sync sweet spot UI once after GameManager finishes delayed init
+            if (!sweetSpotSynced)
+            {
+                RefreshSweetSpotZones();
+                sweetSpotSynced = true;
+            }
 
             LaunchStep step = gm.ballLauncher.GetCurrentStep();
             bool isAITurn = gm.CurrentTeam == Team.Team2;
