@@ -261,8 +261,8 @@ namespace BochaGame
         /// </summary>
         private void PositionActivePlayer(Vector3 throwPos)
         {
-            // Character stands slightly behind and to the side of the throw position
-            Vector3 charPos = throwPos + new Vector3(-0.5f, 0, -1.2f);
+            // Character stands slightly behind and to the side of the throw position, feet on ground
+            Vector3 charPos = new Vector3(throwPos.x - 0.5f, 0f, throwPos.z - 1.2f);
 
             if (CurrentTeam == Team.Team1)
             {
