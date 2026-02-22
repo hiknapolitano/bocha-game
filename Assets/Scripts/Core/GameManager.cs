@@ -54,6 +54,8 @@ namespace BochaGame
             Instance = this;
         }
 
+        private Coroutine aiTimeoutCoroutine;
+
         private void Start()
         {
             StartCoroutine(InitializeGameDelayed());
@@ -72,6 +74,14 @@ namespace BochaGame
             if (scoreManager == null) scoreManager = FindFirstObjectByType<ScoreManager>();
             if (uiManager == null) uiManager = FindFirstObjectByType<UIManager>();
             if (aiPlayer == null) aiPlayer = FindFirstObjectByType<AIPlayer>();
+
+            // Log reference status
+            Debug.Log($"[GameManager] References: court={courtSetup != null}, launcher={ballLauncher != null}, " +
+                      $"camera={cameraController != null}, score={scoreManager != null}, " +
+                      $"ui={uiManager != null}, ai={aiPlayer != null}");
+
+            if (aiPlayer == null)
+                Debug.LogWarning("[GameManager] AIPlayer not found! AI will not be able to play.");
 
             // Gather ball references from CourtSetup
             if (courtSetup != null)
@@ -141,6 +151,7 @@ namespace BochaGame
 
         public void SetState(GameState newState)
         {
+            Debug.Log($"[GameManager] State: {CurrentState} → {newState} | Team: {CurrentTeam}");
             CurrentState = newState;
             OnStateChanged?.Invoke(newState);
 
@@ -192,6 +203,7 @@ namespace BochaGame
             GameObject ballToThrow = GetNextBall();
             if (ballToThrow == null)
             {
+                Debug.Log("[GameManager] No more balls to throw. Moving to Scoring.");
                 SetState(GameState.Scoring);
                 return;
             }
@@ -208,9 +220,34 @@ namespace BochaGame
             OnTurnChanged?.Invoke(CurrentTeam);
 
             // If it's AI's turn, trigger AI
-            if (CurrentTeam == Team.Team2 && aiPlayer != null)
+            if (CurrentTeam == Team.Team2)
             {
-                aiPlayer.TakeTurn();
+                if (aiPlayer != null)
+                {
+                    Debug.Log("[GameManager] Triggering AI turn...");
+                    aiPlayer.TakeTurn();
+
+                    // Safety timeout: if AI hasn't thrown after 5 seconds, retry
+                    if (aiTimeoutCoroutine != null)
+                        StopCoroutine(aiTimeoutCoroutine);
+                    aiTimeoutCoroutine = StartCoroutine(AITimeoutFallback());
+                }
+                else
+                {
+                    Debug.LogWarning("[GameManager] AI player is null! Cannot trigger AI turn.");
+                }
+            }
+        }
+
+        private IEnumerator AITimeoutFallback()
+        {
+            yield return new WaitForSeconds(5f);
+            // If still in Aiming state and it's AI's turn, something went wrong
+            if (CurrentState == GameState.Aiming && CurrentTeam == Team.Team2)
+            {
+                Debug.LogWarning("[GameManager] AI timeout! Retrying AI turn...");
+                if (aiPlayer != null)
+                    aiPlayer.TakeTurn();
             }
         }
 

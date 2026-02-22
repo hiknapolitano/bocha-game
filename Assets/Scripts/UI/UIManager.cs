@@ -10,6 +10,7 @@ namespace BochaGame
         private Text scoreText;
         private Text turnText;
         private Text stateText;
+        private Text stepText;
         private Text roundResultText;
         private Slider powerBar;
         private GameObject powerBarContainer;
@@ -60,15 +61,54 @@ namespace BochaGame
 
         private void Update()
         {
-            // Update power bar
             GameManager gm = GameManager.Instance;
-            if (gm != null && gm.ballLauncher != null)
+            if (gm == null) return;
+
+            // Update step indicator and power bar based on current throw step
+            if (gm.ballLauncher != null)
             {
-                bool showPower = gm.ballLauncher.IsCharging();
+                LaunchStep step = gm.ballLauncher.GetCurrentStep();
+                bool isAITurn = gm.CurrentTeam == Team.Team2;
+
+                UpdateStepIndicator(step, isAITurn);
+
+                // Show power bar only during Power step
+                bool showPower = step == LaunchStep.Power && !isAITurn;
                 if (powerBarContainer != null)
                     powerBarContainer.SetActive(showPower);
                 if (showPower && powerBar != null)
                     powerBar.value = gm.ballLauncher.GetPowerNormalized();
+            }
+        }
+
+        private void UpdateStepIndicator(LaunchStep step, bool isAITurn)
+        {
+            if (stepText == null) return;
+
+            if (isAITurn)
+            {
+                stepText.text = "AI is throwing...";
+                stepText.color = team2UIColor;
+                return;
+            }
+
+            switch (step)
+            {
+                case LaunchStep.Position:
+                    stepText.text = "← A/D →  Position the ball\n<size=20>Press SPACE or Click to confirm</size>";
+                    stepText.color = Color.white;
+                    break;
+                case LaunchStep.Aim:
+                    stepText.text = "← A/D →  Aim direction\n<size=20>Press SPACE or Click to confirm</size>";
+                    stepText.color = Color.white;
+                    break;
+                case LaunchStep.Power:
+                    stepText.text = "Power charging...\n<size=20>Press SPACE or Click to lock power!</size>";
+                    stepText.color = new Color(1f, 0.6f, 0.1f);
+                    break;
+                default:
+                    stepText.text = "";
+                    break;
             }
         }
 
@@ -110,6 +150,15 @@ namespace BochaGame
                 new Vector2(20f, -20f),
                 20, TextAnchor.UpperLeft, FontStyle.Italic);
             stateText.color = new Color(1f, 1f, 1f, 0.6f);
+
+            // --- Step Indicator (center, below middle) ---
+            stepText = CreateText(canvasObj.transform, "StepText",
+                "",
+                new Vector2(0.5f, 0.3f), new Vector2(0.5f, 0.3f), new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                32, TextAnchor.MiddleCenter, FontStyle.Bold);
+            stepText.supportRichText = true;
+            AddTextShadow(stepText);
 
             // --- Power Bar (bottom center) ---
             powerBarContainer = new GameObject("PowerBarContainer");
@@ -230,7 +279,7 @@ namespace BochaGame
 
             // --- Instructions (bottom right) ---
             Text instructions = CreateText(canvasObj.transform, "Instructions",
-                "Mouse: Aim  |  Hold Click: Charge  |  Release: Throw",
+                "A/D: Move/Aim  |  Space/Click: Confirm  |  Watch the power bar!",
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f),
                 new Vector2(-20f, 15f),
                 16, TextAnchor.LowerRight, FontStyle.Normal);
@@ -260,7 +309,7 @@ namespace BochaGame
             rect.anchorMax = anchorMax;
             rect.pivot = pivot;
             rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(600, 80);
+            rect.sizeDelta = new Vector2(600, 100);
 
             return text;
         }
@@ -281,22 +330,25 @@ namespace BochaGame
             switch (state)
             {
                 case GameState.ThrowingPallino:
-                    stateText.text = "Throw the Pallino!";
+                    stateText.text = "Throw the Pallino (target ball)!";
                     break;
                 case GameState.Aiming:
                     stateText.text = "Aim and throw!";
                     break;
                 case GameState.BallInMotion:
                     stateText.text = "Ball rolling...";
+                    if (stepText != null) stepText.text = "";
                     break;
                 case GameState.Scoring:
                     stateText.text = "Scoring...";
+                    if (stepText != null) stepText.text = "";
                     break;
                 case GameState.RoundOver:
                     stateText.text = "Next round...";
                     break;
                 case GameState.GameOver:
                     stateText.text = "";
+                    if (stepText != null) stepText.text = "";
                     break;
             }
         }
@@ -312,7 +364,7 @@ namespace BochaGame
             }
             else
             {
-                turnText.text = "AI Thinking...";
+                turnText.text = "AI's Turn";
                 turnText.color = team2UIColor;
             }
         }
@@ -334,7 +386,6 @@ namespace BochaGame
             roundResultText.color = scoringTeam == Team.Team1 ? team1UIColor : team2UIColor;
             roundResultText.gameObject.SetActive(true);
 
-            // Hide after a delay
             StartCoroutine(HideRoundResult(2.5f));
         }
 
@@ -354,7 +405,6 @@ namespace BochaGame
             gameOverText.color = winner == Team.Team1 ? team1UIColor : team2UIColor;
             gameOverPanel.SetActive(true);
 
-            // Show cursor
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }

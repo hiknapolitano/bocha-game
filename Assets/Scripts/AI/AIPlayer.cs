@@ -25,6 +25,7 @@ namespace BochaGame
         /// </summary>
         public void TakeTurn()
         {
+            Debug.Log("[AIPlayer] TakeTurn called. Starting ThinkAndThrow coroutine...");
             StartCoroutine(ThinkAndThrow());
         }
 
@@ -34,7 +35,11 @@ namespace BochaGame
             yield return new WaitForSeconds(thinkingDelay);
 
             GameManager gm = GameManager.Instance;
-            if (gm == null || gm.Pallino == null || gm.ballLauncher == null) yield break;
+            if (gm == null || gm.Pallino == null || gm.ballLauncher == null)
+            {
+                Debug.LogWarning($"[AIPlayer] Cannot throw! gm={gm != null}, pallino={gm?.Pallino != null}, launcher={gm?.ballLauncher != null}");
+                yield break;
+            }
 
             // Calculate ideal throw parameters
             Vector3 pallinoPos = gm.Pallino.transform.position;
@@ -63,6 +68,7 @@ namespace BochaGame
             finalPower = Mathf.Clamp(finalPower, launcher.minPower, launcher.maxPower);
 
             // Execute the throw
+            Debug.Log($"[AIPlayer] Throwing! Power={finalPower:F1}, Angle={finalAngle:F1}");
             launcher.AIThrow(finalPower, finalAngle);
         }
 

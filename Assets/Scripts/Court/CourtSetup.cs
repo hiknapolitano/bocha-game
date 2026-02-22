@@ -13,7 +13,7 @@ namespace BochaGame
 
         [Header("Ball Settings")]
         public float bocceBallRadius = 0.11f;
-        public float pallinoRadius = 0.04f;
+        public float pallinoRadius = 0.06f;
         public float ballMass = 0.9f;    // ~900g for bocce ball
         public float pallinoMass = 0.06f; // ~60g for pallino
 
@@ -25,7 +25,7 @@ namespace BochaGame
         [Header("Colors")]
         public Color team1Color = new Color(0.85f, 0.15f, 0.15f); // Red
         public Color team2Color = new Color(0.15f, 0.3f, 0.85f);  // Blue
-        public Color pallinoColor = Color.white;
+        public Color pallinoColor = new Color(0.68f, 1f, 0.18f); // Bright yellow-green
         public Color courtColor = new Color(0.72f, 0.58f, 0.38f);  // Sandy brown
         public Color wallColor = new Color(0.45f, 0.3f, 0.15f);    // Dark wood
         public Color surroundColor = new Color(0.25f, 0.55f, 0.2f); // Grass green
@@ -216,6 +216,12 @@ namespace BochaGame
             // Ball controller
             BallController bc = ball.AddComponent<BallController>();
             bc.isPallino = isPallino;
+
+            // Add marker to pallino for visibility
+            if (isPallino)
+            {
+                ball.AddComponent<PallinoMarker>();
+            }
 
             return ball;
         }
