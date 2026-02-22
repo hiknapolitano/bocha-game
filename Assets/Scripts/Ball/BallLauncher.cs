@@ -337,7 +337,9 @@ namespace BochaGame
 
             // Apply force
             Vector3 force = throwDirection * currentPower;
-            force.y = currentPower * 0.08f; // slight upward arc
+            // Only add upward arc for bocce balls, not pallino (ground roll)
+            if (!isPallinoThrow)
+                force.y = currentPower * 0.08f;
             currentRb.AddForce(force, ForceMode.Impulse);
 
             // Start settling detection

@@ -8,7 +8,7 @@ namespace BochaGame
         [Header("Court Dimensions (meters)")]
         public float courtLength = 27.5f;
         public float courtWidth = 4f;
-        public float wallHeight = 0.3f;
+        public float wallHeight = 1.0f;
         public float wallThickness = 0.15f;
 
         [Header("Ball Settings")]
