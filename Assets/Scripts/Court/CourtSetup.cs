@@ -39,6 +39,7 @@ namespace BochaGame
 
         private PhysicsMaterial courtPhysicsMat;
         private PhysicsMaterial ballPhysicsMat;
+        private PhysicsMaterial wallPhysicsMat;
 
         private void Awake()
         {
@@ -65,6 +66,13 @@ namespace BochaGame
             ballPhysicsMat.bounciness = 0.5f;
             ballPhysicsMat.frictionCombine = PhysicsMaterialCombine.Minimum;
             ballPhysicsMat.bounceCombine = PhysicsMaterialCombine.Maximum;
+
+            wallPhysicsMat = new PhysicsMaterial("WallSurface");
+            wallPhysicsMat.dynamicFriction = 0.1f;
+            wallPhysicsMat.staticFriction = 0.1f;
+            wallPhysicsMat.bounciness = 0.85f;
+            wallPhysicsMat.frictionCombine = PhysicsMaterialCombine.Minimum;
+            wallPhysicsMat.bounceCombine = PhysicsMaterialCombine.Maximum;
         }
 
         private void CreateCourt()
@@ -143,7 +151,7 @@ namespace BochaGame
             wall.transform.localPosition = position;
             wall.transform.localScale = scale;
             wall.GetComponent<Renderer>().material = CreateMaterial(wallColor);
-            wall.GetComponent<Collider>().material = ballPhysicsMat;
+            wall.GetComponent<Collider>().material = wallPhysicsMat;
         }
 
         private void CreateLine(Transform parent, string name, Vector3 position, Vector3 scale, Color color)
@@ -302,6 +310,10 @@ namespace BochaGame
             // Create AIPlayer
             GameObject aiObj = new GameObject("AIPlayer");
             aiObj.AddComponent<AIPlayer>();
+
+            // Create Minimap
+            GameObject minimapObj = new GameObject("Minimap");
+            minimapObj.AddComponent<Minimap>();
 
             // Create Player Characters
             GameObject player1Obj = new GameObject("Player1Character");
