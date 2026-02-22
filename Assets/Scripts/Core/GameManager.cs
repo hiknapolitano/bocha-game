@@ -192,10 +192,11 @@ namespace BochaGame
                 ballLauncher.SetupThrow(Pallino, true);
             }
 
-            OnTurnChanged?.Invoke(CurrentTeam);
+            // Camera follows the ball during setup so player can see it
+            if (cameraController != null)
+                cameraController.FollowBall(Pallino.transform);
 
-            // If AI's turn to throw pallino (currently Team1 = player)
-            // Team1 always throws pallino, so no AI needed here
+            OnTurnChanged?.Invoke(CurrentTeam);
         }
 
         private void SetupAiming()
@@ -216,6 +217,10 @@ namespace BochaGame
             {
                 ballLauncher.SetupThrow(ballToThrow, false);
             }
+
+            // Camera follows the ball during setup so player can see it
+            if (cameraController != null)
+                cameraController.FollowBall(ballToThrow.transform);
 
             OnTurnChanged?.Invoke(CurrentTeam);
 

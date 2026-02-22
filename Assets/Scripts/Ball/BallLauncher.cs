@@ -16,6 +16,8 @@ namespace BochaGame
         [Header("Launch Settings")]
         public float minPower = 3f;
         public float maxPower = 18f;
+        public float pallinoMinPower = 2f;
+        public float pallinoMaxPower = 6f;
 
         [Header("Position Step")]
         public float positionSpeed = 3f;
@@ -41,6 +43,8 @@ namespace BochaGame
         private float aimAngle = 0f;
         private float positionX = 0f;
         private float powerT = 0f; // 0..1 oscillating value
+        private float activePowerMin;
+        private float activePowerMax;
 
         // Court bounds for positioning
         private float courtHalfWidth = 1.8f; // slightly inside the walls
@@ -131,6 +135,10 @@ namespace BochaGame
             currentPower = 0f;
             powerT = 0f;
             throwDirection = Vector3.forward;
+
+            // Use lower power for pallino (it's very light)
+            activePowerMin = pallinoThrow ? pallinoMinPower : minPower;
+            activePowerMax = pallinoThrow ? pallinoMaxPower : maxPower;
 
             // Get the base throw position from court setup
             GameManager gm = GameManager.Instance;
@@ -250,7 +258,7 @@ namespace BochaGame
             // Auto-oscillate power (ping-pong from 0 to 1)
             powerT += Time.deltaTime * powerOscillateSpeed;
             float oscillation = Mathf.PingPong(powerT, 1f);
-            currentPower = Mathf.Lerp(minPower, maxPower, oscillation);
+            currentPower = Mathf.Lerp(activePowerMin, activePowerMax, oscillation);
 
             // Show trajectory preview
             ShowTrajectory();
@@ -388,7 +396,7 @@ namespace BochaGame
 
         public float GetPowerNormalized()
         {
-            return Mathf.InverseLerp(minPower, maxPower, currentPower);
+            return Mathf.InverseLerp(activePowerMin, activePowerMax, currentPower);
         }
 
         public bool IsAiming()
