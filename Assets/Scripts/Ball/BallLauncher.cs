@@ -14,17 +14,17 @@ namespace BochaGame
     public class BallLauncher : MonoBehaviour
     {
         [Header("Launch Settings")]
-        public float minPower = 3f;
-        public float maxPower = 12f;
-        public float pallinoMinPower = 1f;
-        public float pallinoMaxPower = 4f;
+        public float minPower = 5f;
+        public float maxPower = 18f;
+        public float pallinoMinPower = 0.5f;
+        public float pallinoMaxPower = 2f;
 
         [Header("Position Step")]
         public float positionSpeed = 3f;
 
         [Header("Aim Step — Auto Oscillation")]
         public float aimOscillateSpeed = 1.2f; // full swings per second
-        public float maxAimAngle = 45f;
+        public float maxAimAngle = 25f;
 
         [Header("Power Step — Sweet Spot")]
         public float powerOscillateSpeed = 1.5f;

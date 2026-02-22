@@ -191,7 +191,7 @@ namespace BochaGame
             pbcRect.anchorMax = new Vector2(0.5f, 0f);
             pbcRect.pivot = new Vector2(0.5f, 0f);
             pbcRect.anchoredPosition = new Vector2(0, 40f);
-            pbcRect.sizeDelta = new Vector2(800, 45);
+            pbcRect.sizeDelta = new Vector2(1100, 45);
 
             // Background
             GameObject bgObj = new GameObject("Background");
