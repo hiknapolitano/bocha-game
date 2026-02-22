@@ -15,7 +15,7 @@ namespace BochaGame
     {
         [Header("Launch Settings")]
         public float minPower = 2f;
-        public float maxPower = 22f;
+        public float maxPower = 14f;
         public float pallinoMinPower = 0.3f;
         public float pallinoMaxPower = 1.5f;
 
@@ -27,9 +27,9 @@ namespace BochaGame
         public float maxAimAngle = 25f;
 
         [Header("Power Step — Sweet Spot")]
-        public float powerOscillateSpeed = 0.7f;
-        public float sweetSpotMin = 0.74f; // normalized 0..1
-        public float sweetSpotMax = 0.76f;
+        public float powerOscillateSpeed = 1.0f;
+        public float sweetSpotMin = 0.745f; // normalized 0..1
+        public float sweetSpotMax = 0.755f;
         public float overpowerSpreadMax = 15f; // max random angle deviation in degrees
 
         [Header("Trajectory Preview")]

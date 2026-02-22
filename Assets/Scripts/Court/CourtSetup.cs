@@ -209,7 +209,7 @@ namespace BochaGame
 
             Rigidbody rb = ball.AddComponent<Rigidbody>();
             rb.mass = mass;
-            rb.linearDamping = 0.2f;
+            rb.linearDamping = 0.4f;
             rb.angularDamping = 0.5f;
             rb.useGravity = true;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
