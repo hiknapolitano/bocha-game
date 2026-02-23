@@ -14,6 +14,7 @@ namespace BochaGame
 
         [Header("Aim View Settings")]
         public Vector3 aimOffset = new Vector3(0, 3f, -4f);
+        public Vector3 aimZoomOffset = new Vector3(0, 2f, -2.5f); // closer when selecting angle
 
         [Header("Transition")]
         public float transitionSpeed = 3f;
@@ -71,7 +72,15 @@ namespace BochaGame
             Vector3 desiredOffset;
             if (isAiming)
             {
-                desiredOffset = aimOffset;
+                // Zoom in during angle selection stage
+                if (gm.ballLauncher != null && gm.ballLauncher.GetCurrentStep() == LaunchStep.Aim)
+                {
+                    desiredOffset = aimZoomOffset;
+                }
+                else
+                {
+                    desiredOffset = aimOffset;
+                }
             }
             else if (isBallMoving)
             {

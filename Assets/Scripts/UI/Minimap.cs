@@ -24,6 +24,7 @@ namespace BochaGame
         private List<Image> team1Dots = new List<Image>();
         private List<Image> team2Dots = new List<Image>();
         private Image pallinoDot;
+        private Sprite circleSprite;
         private bool initialized = false;
 
         private Color team1Color = new Color(0.95f, 0.2f, 0.2f, 1f);
@@ -46,12 +47,16 @@ namespace BochaGame
             // Update pallino
             if (gm.Pallino != null)
             {
-                Rigidbody rb = gm.Pallino.GetComponent<Rigidbody>();
-                bool inPlay = rb != null && !rb.isKinematic;
+                // Pallino is "in play" if it has been thrown (not at hidden position)
+                bool inPlay = gm.Pallino.transform.position.y > -5f;
                 if (inPlay)
                 {
                     UpdateDot(pallinoDot, gm.Pallino.transform.position);
                     pallinoDot.gameObject.SetActive(true);
+                    
+                    // Match pallino color
+                    Renderer r = gm.Pallino.GetComponent<Renderer>();
+                    if (r != null) pallinoDot.color = r.material.color;
                 }
                 else
                 {
@@ -72,8 +77,37 @@ namespace BochaGame
             courtLength = gm.courtSetup.courtLength;
             courtWidth = gm.courtSetup.courtWidth;
 
+            CreateCircleSprite();
             CreateMinimapUI();
             initialized = true;
+        }
+
+        private void CreateCircleSprite()
+        {
+            int size = 64;
+            Texture2D tex = new Texture2D(size, size);
+            float center = size / 2f;
+            float radius = size / 2f - 2f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                    if (dist < radius)
+                    {
+                        // Antialiasing
+                        float alpha = Mathf.Clamp01(radius - dist);
+                        tex.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                    }
+                    else
+                    {
+                        tex.SetPixel(x, y, Color.clear);
+                    }
+                }
+            }
+            tex.Apply();
+            circleSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         }
 
         private void CreateMinimapUI()
@@ -140,6 +174,7 @@ namespace BochaGame
             GameObject obj = new GameObject(name);
             obj.transform.SetParent(parent, false);
             Image img = obj.AddComponent<Image>();
+            img.sprite = circleSprite;
             img.color = color;
             RectTransform rect = obj.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(size, size);
@@ -155,12 +190,16 @@ namespace BochaGame
             {
                 if (i < balls.Count && balls[i] != null)
                 {
-                    Rigidbody rb = balls[i].GetComponent<Rigidbody>();
-                    bool inPlay = rb != null && !rb.isKinematic;
+                    // Ball is "in play" if it's not at the hidden position
+                    bool inPlay = balls[i].transform.position.y > -5f;
                     if (inPlay)
                     {
                         UpdateDot(dots[i], balls[i].transform.position);
                         dots[i].gameObject.SetActive(true);
+
+                        // Match ball color
+                        Renderer r = balls[i].GetComponent<Renderer>();
+                        if (r != null) dots[i].color = r.material.color;
                     }
                     else
                     {

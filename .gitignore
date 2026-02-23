@@ -69,3 +69,9 @@ Thumbs.db
 
 # Antigravity
 .gemini/
+
+# Large Assets
+/[Aa]ssets/20 [Gg]round [Mm]aterial [Ss]ets [Mm][Aa][Nn] [Mm][Aa][Dd][Ee]/
+/[Aa]ssets/20 [Gg]round [Mm]aterial [Ss]ets [Mm][Aa][Nn] [Mm][Aa][Dd][Ee].meta
+/[Aa]ssets/Real Stars Skybox/
+/[Aa]ssets/Real Stars Skybox.meta

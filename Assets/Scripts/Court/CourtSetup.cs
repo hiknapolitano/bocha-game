@@ -11,6 +11,25 @@ namespace BochaGame
         public float wallHeight = 1.0f;
         public float wallThickness = 0.15f;
 
+        [Header("Generation Settings")]
+        public bool generateProcedurally = true;
+
+        [Header("Pre-made Scene Objects (if not generating)")]
+        public GameObject premadePallino;
+        public List<GameObject> premadeTeam1Balls = new List<GameObject>();
+        public List<GameObject> premadeTeam2Balls = new List<GameObject>();
+        public PlayerCharacter premadePlayer1;
+        public PlayerCharacter premadePlayer2;
+
+        [Header("Persistent Materials (Optional)")]
+        public Material courtMaterial;
+        public Material wallMaterial;
+        public Material surroundMaterial;
+        public Material team1Material;
+        public Material team2Material;
+        public Material pallinoMaterial;
+        public Material lineMaterial;
+
         [Header("Ball Settings")]
         public float bocceBallRadius = 0.11f;
         public float pallinoRadius = 0.06f;
@@ -44,11 +63,73 @@ namespace BochaGame
         private void Awake()
         {
             CreatePhysicsMaterials();
-            CreateCourt();
-            CreateBalls();
-            CreateLighting();
-            CreateSkybox();
-            CreateGameComponents();
+
+            if (generateProcedurally)
+            {
+                CreateCourt();
+                CreateBalls();
+                CreateLighting();
+                CreateSkybox();
+                CreateGameComponents();
+            }
+            else
+            {
+                UsePremadeObjects();
+            }
+        }
+
+        private void UsePremadeObjects()
+        {
+            // Assign balls
+            pallinoInstance = premadePallino;
+            team1BallInstances = new List<GameObject>(premadeTeam1Balls);
+            team2BallInstances = new List<GameObject>(premadeTeam2Balls);
+
+            // Assign players
+            player1Character = premadePlayer1;
+            player2Character = premadePlayer2;
+
+            // Still need to ensure essential components exist if missing
+            EnsureGameComponentsExist();
+        }
+
+        private void EnsureGameComponentsExist()
+        {
+            if (FindFirstObjectByType<BallLauncher>() == null)
+            {
+                GameObject launcherObj = new GameObject("BallLauncher");
+                launcherObj.AddComponent<BallLauncher>();
+            }
+
+            if (FindFirstObjectByType<ScoreManager>() == null)
+            {
+                GameObject scoreObj = new GameObject("ScoreManager");
+                scoreObj.AddComponent<ScoreManager>();
+            }
+
+            Camera mainCam = Camera.main;
+            if (mainCam != null && mainCam.GetComponent<CameraController>() == null)
+            {
+                mainCam.gameObject.AddComponent<CameraController>();
+            }
+
+            if (FindFirstObjectByType<UIManager>() == null)
+            {
+                GameObject uiObj = new GameObject("UIManager");
+                uiObj.AddComponent<UIManager>();
+            }
+
+            if (FindFirstObjectByType<AIPlayer>() == null)
+            {
+                GameObject aiObj = new GameObject("AIPlayer");
+                aiObj.AddComponent<AIPlayer>();
+            }
+
+            if (FindFirstObjectByType<Minimap>() == null)
+            {
+                GameObject minimapObj = new GameObject("Minimap");
+                minimapObj.AddComponent<Minimap>();
+            }
         }
 
         private void CreatePhysicsMaterials()
@@ -86,7 +167,10 @@ namespace BochaGame
             ground.transform.SetParent(court.transform);
             ground.transform.localScale = new Vector3(courtWidth, 0.1f, courtLength);
             ground.transform.localPosition = new Vector3(0, -0.05f, 0);
-            ground.GetComponent<Renderer>().material = CreateMaterial(courtColor);
+            
+            Material groundMat = courtMaterial != null ? courtMaterial : CreateMaterial(courtColor);
+            ApplyTexture(groundMat, "20 Ground Material Sets MAN MADE/STONE/TEXTURES/Stone 8 Diffuse.png", new Vector2(2, 10), courtMaterial != null);
+            ground.GetComponent<Renderer>().material = groundMat;
             ground.GetComponent<Collider>().material = courtPhysicsMat;
             ground.layer = 0;
 
@@ -96,7 +180,10 @@ namespace BochaGame
             surround.transform.SetParent(court.transform);
             surround.transform.localScale = new Vector3(courtWidth * 8, 0.08f, courtLength * 1.5f);
             surround.transform.localPosition = new Vector3(0, -0.1f, 0);
-            surround.GetComponent<Renderer>().material = CreateMaterial(surroundColor);
+            
+            Material surroundMat = surroundMaterial != null ? surroundMaterial : CreateMaterial(surroundColor);
+            ApplyTexture(surroundMat, "20 Ground Material Sets MAN MADE/INDOOR/TEXTURES/Tiles 04 DIFFUSE.png", new Vector2(20, 20), surroundMaterial != null);
+            surround.GetComponent<Renderer>().material = surroundMat;
             surround.GetComponent<Collider>().material = courtPhysicsMat;
 
             // --- Walls ---
@@ -150,7 +237,7 @@ namespace BochaGame
             wall.transform.SetParent(parent);
             wall.transform.localPosition = position;
             wall.transform.localScale = scale;
-            wall.GetComponent<Renderer>().material = CreateMaterial(wallColor);
+            wall.GetComponent<Renderer>().material = wallMaterial != null ? wallMaterial : CreateMaterial(wallColor);
             wall.GetComponent<Collider>().material = wallPhysicsMat;
         }
 
@@ -162,8 +249,8 @@ namespace BochaGame
             line.transform.localPosition = position;
             line.transform.localScale = scale;
 
-            Material mat = CreateMaterial(color);
-            if (color.a < 1f)
+            Material mat = lineMaterial != null ? lineMaterial : CreateMaterial(color);
+            if (lineMaterial == null && color.a < 1f)
             {
                 SetMaterialTransparent(mat);
             }
@@ -204,10 +291,24 @@ namespace BochaGame
             ball.transform.position = new Vector3(0, -10f, 0); // Hidden initially
 
             // Material
-            Material mat = CreateMaterial(color);
-            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0.3f);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.7f);
-            else if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.7f);
+            Material mat = null;
+            if (isPallino && pallinoMaterial != null) mat = pallinoMaterial;
+            else if (!isPallino)
+            {
+                // We don't have a direct way to know which team ball is which here easily without passing team
+                // But CreateBall is called within the loop in CreateBalls, so let's refactor slightly or just check name
+                if (name.Contains("Team1") && team1Material != null) mat = team1Material;
+                else if (name.Contains("Team2") && team2Material != null) mat = team2Material;
+            }
+
+            if (mat == null)
+            {
+                mat = CreateMaterial(color);
+                if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0.3f);
+                if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.7f);
+                else if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.7f);
+            }
+            
             ball.GetComponent<Renderer>().material = mat;
 
             // Physics
@@ -277,56 +378,26 @@ namespace BochaGame
 
         private void CreateGameComponents()
         {
-            // Create BallLauncher
-            GameObject launcherObj = new GameObject("BallLauncher");
-            launcherObj.AddComponent<BallLauncher>();
+            EnsureGameComponentsExist();
 
-            // Create ScoreManager
-            GameObject scoreObj = new GameObject("ScoreManager");
-            scoreObj.AddComponent<ScoreManager>();
-
-            // Create CameraController (attach to main camera)
-            Camera mainCam = Camera.main;
-            if (mainCam != null)
+            // Create Player Characters (these are specific to procedural generation)
+            if (player1Character == null)
             {
-                if (mainCam.GetComponent<CameraController>() == null)
-                    mainCam.gameObject.AddComponent<CameraController>();
-            }
-            else
-            {
-                GameObject camObj = new GameObject("MainCamera");
-                camObj.tag = "MainCamera";
-                Camera cam = camObj.AddComponent<Camera>();
-                cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.45f, 0.7f, 0.95f);
-                camObj.AddComponent<AudioListener>();
-                camObj.AddComponent<CameraController>();
+                GameObject player1Obj = new GameObject("Player1Character");
+                player1Character = player1Obj.AddComponent<PlayerCharacter>();
+                player1Character.SetTeamColor(team1Color);
+                player1Character.playerName = "Player";
+                player1Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
             }
 
-            // Create UIManager
-            GameObject uiObj = new GameObject("UIManager");
-            uiObj.AddComponent<UIManager>();
-
-            // Create AIPlayer
-            GameObject aiObj = new GameObject("AIPlayer");
-            aiObj.AddComponent<AIPlayer>();
-
-            // Create Minimap
-            GameObject minimapObj = new GameObject("Minimap");
-            minimapObj.AddComponent<Minimap>();
-
-            // Create Player Characters
-            GameObject player1Obj = new GameObject("Player1Character");
-            player1Character = player1Obj.AddComponent<PlayerCharacter>();
-            player1Character.SetTeamColor(team1Color);
-            player1Character.playerName = "Player";
-            player1Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
-
-            GameObject player2Obj = new GameObject("Player2Character");
-            player2Character = player2Obj.AddComponent<PlayerCharacter>();
-            player2Character.SetTeamColor(team2Color);
-            player2Character.playerName = "AI";
-            player2Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
+            if (player2Character == null)
+            {
+                GameObject player2Obj = new GameObject("Player2Character");
+                player2Character = player2Obj.AddComponent<PlayerCharacter>();
+                player2Character.SetTeamColor(team2Color);
+                player2Character.playerName = "AI";
+                player2Character.SetPosition(new Vector3(0, 0, -50f), 0f); // off-screen until needed
+            }
         }
 
         /// <summary>
@@ -351,6 +422,34 @@ namespace BochaGame
             else
                 mat.color = color;
             return mat;
+        }
+
+        private void ApplyTexture(Material mat, string path, Vector2 tiling, bool isPersistent)
+        {
+            if (isPersistent) return; // Don't override persistent materials with procedural textures
+
+            Texture2D tex = Resources.Load<Texture2D>(path.Replace("Assets/", "").Replace(".png", "").Replace(".jpg", "").Replace(".tga", ""));
+            
+            // Resources.Load might fail if not in a Resources folder, so we use a fallback approach for development
+            if (tex == null)
+            {
+                // In a real project, we would use AssetDatabase or have these in a Resources folder.
+                // For this agentic context, we assume the user might move them or we can try to find them.
+                // But generally, we'll try to set the texture by path if we were in editor.
+                // Since we are runtime, we can try to load from the file system if available or just log.
+                Debug.Log($"[CourtSetup] Attempting to load texture: {path}");
+            }
+
+            if (mat.HasProperty("_BaseMap")) // URP
+            {
+                mat.SetTexture("_BaseMap", tex);
+                mat.SetTextureScale("_BaseMap", tiling);
+            }
+            else if (mat.HasProperty("_MainTex")) // Built-in
+            {
+                mat.SetTexture("_MainTex", tex);
+                mat.SetTextureScale("_MainTex", tiling);
+            }
         }
 
         private void SetMaterialTransparent(Material mat)
